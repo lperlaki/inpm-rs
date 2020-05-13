@@ -1,31 +1,28 @@
 use crate::file::File;
 use proc_macro2::{Span, TokenStream};
 use quote::{quote, ToTokens};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use syn::{Error, Result};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct Dir {
-    root_rel_path: PathBuf,
-    abs_path: PathBuf,
+    root: PathBuf,
+    #[cfg(any(not(debug_assertions), feature = "embed"))]
     files: Vec<File>,
 }
 
 impl Dir {
-    pub fn from_disk<Q: AsRef<Path>, P: Into<PathBuf>>(root: Q, path: P) -> Result<Dir> {
-        let abs_path = path.into();
-        let root = root.as_ref();
+    pub fn from_disk(root: impl Into<PathBuf>) -> Result<Dir> {
+        let root = root.into();
 
-        let root_rel_path = abs_path.strip_prefix(&root).unwrap().to_path_buf();
-
-        if !abs_path.exists() {
+        if !root.exists() {
             return Err(Error::new(
                 Span::call_site(),
                 format!("The directory doesn't exist"),
             ));
         }
-
-        let files = walkdir::WalkDir::new(&abs_path)
+        #[cfg(any(not(debug_assertions), feature = "embed"))]
+        let files = walkdir::WalkDir::new(&root)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
@@ -34,25 +31,39 @@ impl Dir {
             .collect::<Result<_>>()?;
 
         Ok(Dir {
-            root_rel_path,
-            abs_path,
+            root,
+            #[cfg(any(not(debug_assertions), feature = "embed"))]
             files,
         })
     }
 }
 
 impl ToTokens for Dir {
+    #[cfg(any(not(debug_assertions), feature = "embed"))]
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let root_rel_path = self.root_rel_path.display().to_string();
+        let path = self.root.display().to_string();
         let files = &self.files;
 
         let tok = quote! {
-            $crate::Dir {
-                path: #root_rel_path,
-                files: &[#(
+            $crate::Dir::new(
+                 #path,
+                &[#(
                     #files
                  ),*],
-            }
+                )
+        };
+
+        tok.to_tokens(tokens);
+    }
+
+    #[cfg(all(debug_assertions, not(feature = "embed")))]
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let path = self.root.display().to_string();
+
+        let tok = quote! {
+            $crate::Dir::new(
+                #path,
+            )
         };
 
         tok.to_tokens(tokens);

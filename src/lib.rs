@@ -6,7 +6,7 @@
 //! The argument path is the ouput directory of the npm build. The parent directory is the directory with package.json
 //!
 //! ```ignore
-//! const ASSETS: inpm::Dir<'static> = inpm::include_package!("./client/dist");
+//! const ASSETS: inpm::Dir = inpm::include_package!("./client/dist");
 //!
 //!
 //! let content_of_my_file = ASSETS.get("some_dir/my_file.txt").unwrap().contents();
@@ -18,7 +18,7 @@
 //! `features=["warp"]`
 //!
 //! ```ignore
-//! const ASSETS: inpm::Dir<'static> = inpm::include_package!("./client/dist");
+//! const ASSETS: inpm::Dir = inpm::include_package!("./client/dist");
 //!
 //!
 //! let my_file_filter = inpm::warp::embedded(ASSETS);
@@ -56,50 +56,45 @@ pub mod warp {
     }
 
     pub fn embedded(
-        dir: crate::Dir<'static>,
-    ) -> impl Filter<Extract = (warpd::reply::WithHeader<File<'static>>,), Error = Rejection> + Clone
-    {
+        dir: crate::Dir,
+    ) -> impl Filter<Extract = (warpd::reply::WithHeader<File>,), Error = Rejection> + Clone {
         warpd::get()
             .and(warpd::path::tail())
             .and(with(dir))
-            .and_then(
-                |tail: warpd::path::Tail, dir: crate::Dir<'static>| async move {
-                    dir.get(tail.as_str())
-                        .map(|file| {
-                            warpd::reply::with_header(
-                                file,
-                                warpd::http::header::CONTENT_TYPE,
-                                mime_guess::from_path(file.path())
-                                    .first_or_octet_stream()
-                                    .as_ref(),
-                            )
-                        })
-                        .ok_or(warpd::reject::not_found())
-                },
-            )
+            .and_then(|tail: warpd::path::Tail, dir: crate::Dir| async move {
+                dir.get(tail.as_str())
+                    .map(|file| {
+                        let mime = mime_guess::from_path(file.path()).first_or_octet_stream();
+                        warpd::reply::with_header(
+                            file,
+                            warpd::http::header::CONTENT_TYPE,
+                            mime.as_ref(),
+                        )
+                    })
+                    .ok_or(warpd::reject::not_found())
+            })
     }
 
     // Put this last in the filter chain
     pub fn spa(
-        dir: crate::Dir<'static>,
+        dir: crate::Dir,
         entry: &'static str,
-    ) -> impl Filter<Extract = (warpd::reply::WithHeader<File<'static>>,), Error = Rejection> + Clone
-    {
+    ) -> impl Filter<Extract = (warpd::reply::WithHeader<File>,), Error = Rejection> + Clone {
         warpd::get()
             .and(warpd::path::tail())
             .and(with(dir))
             .and(with(entry))
             .and_then(
-                |tail: warpd::path::Tail, dir: crate::Dir<'static>, entry: &'static str| async move {
+                |tail: warpd::path::Tail, dir: crate::Dir, entry: &'static str| async move {
                     dir.get(tail.as_str())
                         .or(dir.get(entry))
                         .map(|file| {
+                            let mime = mime_guess::from_path(file.path()).first_or_octet_stream();
+
                             warpd::reply::with_header(
                                 file,
                                 warpd::http::header::CONTENT_TYPE,
-                                mime_guess::from_path(file.path())
-                                    .first_or_octet_stream()
-                                    .as_ref(),
+                                mime.as_ref(),
                             )
                         })
                         .ok_or(warpd::reject::not_found())
@@ -107,7 +102,7 @@ pub mod warp {
             )
     }
 
-    impl Reply for File<'_> {
+    impl Reply for File {
         fn into_response(self) -> reply::Response {
             self.contents().into_owned().into_response()
         }

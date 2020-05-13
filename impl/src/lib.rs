@@ -23,8 +23,8 @@ fn do_it(path: PathBuf) -> Result<Dir> {
     }
 
     let parent = parent.canonicalize().unwrap();
-
-    if cfg!(any(not(debug_assertions), feature = "embed")) || !path.exists() {
+    #[cfg(any(not(debug_assertions), feature = "embed"))]
+    {
         if !parent.join("package.json").exists() {
             return Err(Error::new(
                 Span::call_site(),
@@ -36,18 +36,21 @@ fn do_it(path: PathBuf) -> Result<Dir> {
             &parent,
         )?;
         command::run_command(vec!["npm", "run", "build"], &parent)?;
+        if !path.exists() {
+            return Err(Error::new(
+                Span::call_site(),
+                format!("Folder {} doesnot exist after build", path.display()),
+            ));
+        }
     }
 
-    if !path.exists() {
-        return Err(Error::new(
-            Span::call_site(),
-            format!("Folder {} doesnot exist after build", path.display()),
-        ));
-    }
+    #[cfg(any(not(debug_assertions), feature = "embed"))]
+    let path = path
+        .canonicalize()
+        .map_err(|e| Error::new(Span::call_site(), format!("{}", e)))?;
+    println!("{:?}", path);
 
-    let path = path.canonicalize().unwrap();
-
-    Dir::from_disk(&path, &path)
+    Dir::from_disk(path)
 }
 
 #[proc_macro_hack]

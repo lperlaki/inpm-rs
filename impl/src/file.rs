@@ -24,34 +24,16 @@ impl File {
     }
 }
 
-#[cfg(any(not(debug_assertions), feature = "embed"))]
 impl ToTokens for File {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let root_rel_path = self.root_rel_path.display().to_string();
         let abs_path = self.abs_path.display().to_string();
 
         let tok = quote! {
-            $crate::File {
-                path: #root_rel_path,
-                embedded: include_bytes!(#abs_path),
-            }
-        };
-
-        tok.to_tokens(tokens);
-    }
-}
-
-#[cfg(all(debug_assertions, not(feature = "embed")))]
-impl ToTokens for File {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        let root_rel_path = self.root_rel_path.display().to_string();
-        let abs_path = self.abs_path.display().to_string();
-
-        let tok = quote! {
-            $crate::File {
-                path: #root_rel_path,
-                abs_path: #abs_path,
-            }
+            $crate::File::new(
+                #root_rel_path,
+                include_bytes!(#abs_path),
+            )
         };
 
         tok.to_tokens(tokens);
