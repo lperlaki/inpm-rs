@@ -13,7 +13,9 @@ mod dir;
 mod file;
 
 fn do_it(path: PathBuf) -> Result<Dir> {
-    let parent = path.parent().expect("No Parent Direcotrio");
+    let parent = path
+        .parent()
+        .ok_or_else(|| Error::new(Span::call_site(), "No Parent Dir"))?;
 
     if !parent.exists() {
         return Err(Error::new(
@@ -22,9 +24,11 @@ fn do_it(path: PathBuf) -> Result<Dir> {
         ));
     }
 
-    let parent = parent.canonicalize().unwrap();
     #[cfg(any(not(debug_assertions), feature = "embed"))]
     {
+        let parent = parent
+            .canonicalize()
+            .map_err(|e| Error::new(Span::call_site(), format!("{}", e)))?;
         if !parent.join("package.json").exists() {
             return Err(Error::new(
                 Span::call_site(),
@@ -48,7 +52,6 @@ fn do_it(path: PathBuf) -> Result<Dir> {
     let path = path
         .canonicalize()
         .map_err(|e| Error::new(Span::call_site(), format!("{}", e)))?;
-    println!("{:?}", path);
 
     Dir::from_disk(path)
 }

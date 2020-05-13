@@ -15,21 +15,22 @@ impl Dir {
     pub fn from_disk(root: impl Into<PathBuf>) -> Result<Dir> {
         let root = root.into();
 
-        if !root.exists() {
-            return Err(Error::new(
-                Span::call_site(),
-                format!("The directory doesn't exist"),
-            ));
-        }
         #[cfg(any(not(debug_assertions), feature = "embed"))]
-        let files = walkdir::WalkDir::new(&root)
-            .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| e.file_type().is_file())
-            .map(|e| e.into_path())
-            .map(|path| File::from_disk(&root, path))
-            .collect::<Result<_>>()?;
-
+        let files = {
+            if !root.exists() {
+                return Err(Error::new(
+                    Span::call_site(),
+                    format!("The directory doesn't exist"),
+                ));
+            }
+            walkdir::WalkDir::new(&root)
+                .into_iter()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.file_type().is_file())
+                .map(|e| e.into_path())
+                .map(|path| File::from_disk(&root, path))
+                .collect::<Result<_>>()?
+        };
         Ok(Dir {
             root,
             #[cfg(any(not(debug_assertions), feature = "embed"))]
