@@ -1,0 +1,15 @@
+[package]
+name = "inpm"
+version = "0.1.0"
+authors = ["Liam Perlaki <lperlaki@icloud.com>"]
+edition = "2018"
+
+[features]
+warp=["warpd", "mime_guess"]
+embed=["inpm-impl/embed"]
+
+[dependencies]
+proc-macro-hack = "0.5"
+inpm-impl={version="0.1", path = "./impl"}
+warpd={ package="warp", version = "0.2", optional=true }
+mime_guess= { version = "2", optional = true}
