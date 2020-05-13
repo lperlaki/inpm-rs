@@ -31,7 +31,10 @@ fn do_it(path: PathBuf) -> Result<Dir> {
                 format!("Folder {} doenot contain package.json", parent.display()),
             ));
         }
-        command::run_command(vec!["npm", "install"], &parent)?;
+        command::run_command(
+            vec!["npm", "install", "--no-package-lock", "--no-audit"],
+            &parent,
+        )?;
         command::run_command(vec!["npm", "run", "build"], &parent)?;
     }
 
