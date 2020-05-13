@@ -2,7 +2,7 @@
 
 Include Static `npm build` ouput in your rust binary
 
-When you compile in debug mode the File contents will just be read from disk and not embedded. This can manually be overriden with the `embed` feautere.
+When you compile the file contents in debug mode, it will be read from disk and not embedded. This can manually be overriden with the `embed` feature.
 
 ```rust
 const ASSETS: inpm::Dir<'static> = inpm::include_package!("./client/dist");
@@ -22,7 +22,7 @@ const ASSETS: inpm::Dir<'static> = inpm::include_package!("./client/dist");
 
 let my_file_filter = inpm::warp::embedded(ASSETS);
 
-// Allso works with single page applications
+// Also works with single page applications
 
 let my_spa_filter = inpm::warp::spa(ASSETS, "index.html");
 
