@@ -24,7 +24,7 @@ let my_file_filter = inpm::warp::embedded(ASSETS);
 
 // Allso works with single page applications
 
-let my_spa_filter = inpm::warp::spa(ASSETS);
+let my_spa_filter = inpm::warp::spa(ASSETS, "index.html");
 
 
 ```
