@@ -7,7 +7,7 @@ repository = "https://github.com/lperlaki/inpm-rs"
 description = "Inlude npm"
 license = "MIT"
 readme = "../README.md"
-keywords = ["http", "warp", "static", "web", "server", "npm"]
+keywords = ["http", "static", "web", "server", "npm"]
 categories = ["web-programming::http-server"]
 
 
